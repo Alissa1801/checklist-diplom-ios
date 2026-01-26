@@ -1,61 +1,50 @@
-//
-//  ContentView.swift
-//  Checklist_diplom
-//
-//  Created by Alice on 25.01.2026.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @StateObject private var authViewModel = AuthViewModel()
+    
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+        Group {
+            if authViewModel.isAuthenticated {
+                MainTabView()
+                    .environmentObject(authViewModel)
+            } else {
+                LoginView()
+                    .environmentObject(authViewModel)
             }
         }
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+struct MainTabView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
+    var body: some View {
+        TabView {
+            ZonesView()
+                .tabItem {
+                    Label("Зоны", systemImage: "list.bullet")
+                }
+            
+            CreateCheckView()
+                .tabItem {
+                    Label("Проверить", systemImage: "camera")
+                }
+            
+            ChecksHistoryView()
+                .tabItem {
+                    Label("История", systemImage: "clock.arrow.circlepath")
+                }
+            
+            DashboardView()
+                .tabItem {
+                    Label("Статистика", systemImage: "chart.bar")
+                }
+            
+            ProfileView()
+                .tabItem {
+                    Label("Профиль", systemImage: "person")
+                }
+        }
+    }
 }
