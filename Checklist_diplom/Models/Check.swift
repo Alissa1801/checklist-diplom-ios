@@ -59,3 +59,9 @@ struct CreateCheckRequest: Codable {
         case submittedAt = "submitted_at"
     }
 }
+
+struct CheckCreateResponse: Codable {
+    let success: Bool
+    let check: Check
+    let message: String
+}

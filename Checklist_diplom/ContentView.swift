@@ -36,6 +36,7 @@ struct MainTabView: View {
                     Label("История", systemImage: "clock.arrow.circlepath")
                 }
             
+            // Статистика для ВСЕХ (но разная)
             DashboardView()
                 .tabItem {
                     Label("Статистика", systemImage: "chart.bar")

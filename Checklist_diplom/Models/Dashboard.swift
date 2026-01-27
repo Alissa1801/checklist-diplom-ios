@@ -7,7 +7,7 @@ struct DashboardStats: Codable {
     struct StatsData: Codable {
         let overview: OverviewStats
         let quality: QualityStats
-        let users: UsersStats
+        let users: UsersStats?
         let recentChecks: [RecentCheck]
         let timestamp: String
         
@@ -34,7 +34,7 @@ struct DashboardStats: Codable {
     struct QualityStats: Codable {
         let averageScore: Double
         let checksWithPhoto: Int
-        let totalPhotos: Int
+        let totalPhotos: Int?
         let photosPerCheck: Double
         
         enum CodingKeys: String, CodingKey {

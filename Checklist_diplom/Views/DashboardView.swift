@@ -1,15 +1,53 @@
 import SwiftUI
-import Charts
-import SwiftUI
-import Combine
 
 struct DashboardView: View {
     @StateObject private var viewModel = DashboardViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 20) {
+                VStack(spacing: 15) {
+                    
+                Picker("Период", selection: $viewModel.selectedPeriod) {
+                        Text("День").tag("day")
+                        Text("Неделя").tag("week")
+                        Text("Месяц").tag("month")
+                        Text("Все").tag("all")
+                    }
+                    .pickerStyle(.segmented) // Делает Picker в виде кнопок-переключателей
+                    .padding(.horizontal)
+                    .disabled(viewModel.isLoading) // Блокируем во время загрузки
+                    .onChange(of: viewModel.selectedPeriod) { newValue in
+                        // При смене периода автоматически дергаем API
+                        Task {
+                            await viewModel.fetchStats(
+                                userId: authViewModel.userId,
+                                isAdmin: authViewModel.isAdmin
+                            )
+                        }
+                    }
+                    if !viewModel.isPersonalStats {
+                        Text("Статистика системы")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .padding(.top)
+                    } else {
+                        VStack(spacing: 4){
+                        Text("Моя статистика")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .padding(.top)
+                        
+                        if let user = authViewModel.currentUser {
+                            Text(user.fullName)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.top)
+                }
+                    
                     if viewModel.isLoading {
                         ProgressView("Загрузка статистики...")
                             .frame(height: 300)
@@ -23,7 +61,10 @@ struct DashboardView: View {
                                 .padding()
                             Button("Повторить") {
                                 Task {
-                                    await viewModel.fetchStats()
+                                    await viewModel.fetchStats(
+                                        userId: authViewModel.userId,
+                                        isAdmin: authViewModel.isAdmin
+                                    )
                                 }
                             }
                         }
@@ -35,23 +76,39 @@ struct DashboardView: View {
                         // Качество
                         QualityCard(stats: stats.stats.quality)
                         
-                        // Пользователи
-                        UsersCard(stats: stats.stats.users)
+                        // Для админов показываем пользователей
+                        if !viewModel.isPersonalStats, let usersStats = stats.stats.users {
+                            UsersCard(stats: usersStats)
+                        }
                         
                         // Последние проверки
-                        RecentChecksCard(checks: stats.stats.recentChecks)
+                        RecentChecksCard(
+                            checks: stats.stats.recentChecks,
+                            isPersonal: viewModel.isPersonalStats
+                        )
                     }
                 }
                 .padding()
             }
             .navigationTitle("Статистика")
             .refreshable {
-                await viewModel.fetchStats()
+                await viewModel.fetchStats(
+                    userId: authViewModel.userId,
+                    isAdmin: authViewModel.isAdmin
+                )
             }
         }
         .onAppear {
+            print("🔄 DashboardView appeared")
+                print("👤 Current user: \(authViewModel.currentUser?.email ?? "none")")
+                print("👤 User ID: \(authViewModel.userId ?? -1)")
+                print("👤 Is admin: \(authViewModel.isAdmin)")
+            
             Task {
-                await viewModel.fetchStats()
+                await viewModel.fetchStats(
+                    userId: authViewModel.userId,
+                    isAdmin: authViewModel.isAdmin
+                )
             }
         }
     }
@@ -192,24 +249,28 @@ struct UsersCard: View {
 
 struct RecentChecksCard: View {
     let checks: [DashboardStats.RecentCheck]
+    let isPersonal: Bool // Флаг: смотрим ли мы личную статистику
     
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("Последние проверки")
+            // Динамический заголовок
+            Text(isPersonal ? "Мои последние проверки" : "Последние проверки")
                 .font(.headline)
             
             if checks.isEmpty {
-                Text("Нет последних проверок")
+                Text(isPersonal ? "У вас еще нет проверок" : "Нет проверок")
                     .foregroundColor(.secondary)
                     .frame(maxWidth: .infinity)
                     .padding()
             } else {
+                // Показываем первые 3 проверки
                 ForEach(checks.prefix(3)) { check in
-                    RecentCheckRow(check: check)
+                    // Передаем флаг: показывать имя, если статистика НЕ личная
+                    RecentCheckRow(check: check, showUserName: !isPersonal)
                 }
                 
                 if checks.count > 3 {
-                    NavigationLink(destination: AllRecentChecksView(checks: checks)) {
+                    NavigationLink(destination: AllRecentChecksView(checks: checks, isPersonal: isPersonal)) {
                         HStack {
                             Spacer()
                             Text("Показать все (\(checks.count))")
@@ -230,27 +291,34 @@ struct RecentChecksCard: View {
 
 struct RecentCheckRow: View {
     let check: DashboardStats.RecentCheck
+    let showUserName: Bool // Новое свойство для управления видимостью
     
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
+                // Название зоны (всегда показываем)
                 Text(check.zoneName)
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
-                Text(check.userName)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                // Имя пользователя (показываем только для админа в общей статистике)
+                if showUserName {
+                    Text(check.userName ?? "Неизвестно")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
             
             VStack(alignment: .trailing, spacing: 4) {
-                Text(check.status)
+                // Статус проверки
+                Text(formatStatus(check.status))
                     .font(.caption)
                     .fontWeight(check.status == "approved" ? .bold : .regular)
-                    .foregroundColor(check.status == "approved" ? .green : .red)
+                    .foregroundColor(statusColor(check.status))
                 
+                // Оценка, если есть
                 if let score = check.score {
                     Text("\(Int(score))%")
                         .font(.caption2)
@@ -259,6 +327,23 @@ struct RecentCheckRow: View {
             }
         }
         .padding(.vertical, 8)
+    }
+    
+    // Вспомогательные функции для красоты (опционально)
+    private func statusColor(_ status: String) -> Color {
+        switch status {
+        case "approved": return .green
+        case "rejected": return .red
+        default: return .orange
+        }
+    }
+    
+    private func formatStatus(_ status: String) -> String {
+        switch status {
+        case "approved": return "Одобрено"
+        case "rejected": return "Отклонено"
+        default: return "Ожидает"
+        }
     }
 }
 
@@ -292,6 +377,7 @@ struct StatCard: View {
 
 struct AllRecentChecksView: View {
     let checks: [DashboardStats.RecentCheck]
+    let isPersonal: Bool
     
     var body: some View {
         List(checks) { check in
@@ -310,9 +396,12 @@ struct AllRecentChecksView: View {
                         .cornerRadius(4)
                 }
                 
-                Text(check.userName)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                if !isPersonal {
+                    Text(check.userName ?? "Неизвестный сотрудник")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue) // Выделим синим для наглядности
+                    }
                 
                 HStack {
                     if let score = check.score {
