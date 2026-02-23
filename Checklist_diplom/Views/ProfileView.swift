@@ -45,8 +45,8 @@ struct ProfileView: View {
                 
                 // Статистика
                 Section(header: Text("Статистика")) {
-                    NavigationLink(destination: DashboardView()) {
-                        Label("Дашборд", systemImage: "chart.bar")
+                    NavigationLink(destination: DashboardView(userId: authViewModel.userId, isAdmin: false, title: "Моя статистика")) {
+                        Label("Моя статистика", systemImage: "chart.bar")
                     }
                     
                     NavigationLink(destination: ChecksHistoryView()) {

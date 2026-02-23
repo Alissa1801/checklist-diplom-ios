@@ -20,40 +20,30 @@ class DashboardViewModel: ObservableObject {
         print("🔄 fetchStats called: userId=\(userId ?? -1), isAdmin=\(isAdmin), period=\(selectedPeriod)")
         
         do {
-            // 1. Если админ — запрашиваем общую статистику системы с учетом периода
-            if isAdmin {
-                print("📊 Админ обнаружен. Запрашиваем общую статистику системы (период: \(selectedPeriod))...")
-                let response = try await APIService.shared.fetchDashboardStats(period: selectedPeriod)
-                
-                await MainActor.run {
-                    print("✅ Общая статистика получена")
-                    self.stats = response
-                    self.isPersonalStats = false // Флаг для отображения имен в UI
-                }
-            }
-            // 2. Если не админ, но есть ID — запрашиваем личную статистику с учетом периода
-            else if let id = userId {
-                print("📊 Запрашиваем личную статистику для userId=\(id) (период: \(selectedPeriod))")
-                let response = try await APIService.shared.fetchPersonalStats(userId: id, period: selectedPeriod)
-                
-                await MainActor.run {
-                    print("✅ Личная статистика получена")
-                    self.stats = response
-                    self.isPersonalStats = true // Флаг для скрытия имен в UI
-                }
-            } else {
-                throw APIError.serverError("Недостаточно данных для получения статистики")
+            // Теперь используем обновленный метод APIService.shared.fetchDashboardStats
+            // Он универсален и для админа, и для личной статистики
+            
+            let response = try await APIService.shared.fetchDashboardStats(
+                period: selectedPeriod,
+                userId: userId,
+                isAdmin: isAdmin
+            )
+            
+            await MainActor.run {
+                print("✅ Статистика получена (isAdmin: \(isAdmin))")
+                self.stats = response
+                // Если мы зашли как админ, то это НЕ персональная статистика (isPersonalStats = false)
+                // Если как обычный юзер, то персональная (isPersonalStats = true)
+                self.isPersonalStats = !isAdmin
+                self.isLoading = false
             }
             
         } catch {
             await MainActor.run {
                 self.errorMessage = error.localizedDescription
+                self.isLoading = false
                 print("❌ Error fetching stats: \(error)")
             }
-        }
-        
-        await MainActor.run {
-            self.isLoading = false
         }
     }
 }

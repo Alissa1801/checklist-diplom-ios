@@ -16,10 +16,10 @@ struct Check: Codable, Identifiable, Hashable {
     
     var statusText: String {
         switch status {
-        case 0: return "Создана"
+        case 0: return "Создано"
         case 1: return "В обработке"
-        case 2: return "Одобрена"
-        case 3: return "Отклонена"
+        case 2: return "Одобрено"
+        case 3: return "Отклонено"
         default: return "Неизвестно"
         }
     }

@@ -8,11 +8,12 @@ struct DashboardStats: Codable {
         let overview: OverviewStats
         let quality: QualityStats
         let users: UsersStats?
+        let leaderboard: [LeaderboardUser]
         let recentChecks: [RecentCheck]
         let timestamp: String
         
         enum CodingKeys: String, CodingKey {
-            case overview, quality, users, timestamp
+            case overview, quality, users, timestamp, leaderboard
             case recentChecks = "recent_checks"
         }
     }

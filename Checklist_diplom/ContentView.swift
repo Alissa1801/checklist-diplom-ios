@@ -36,11 +36,17 @@ struct MainTabView: View {
                     Label("История", systemImage: "clock.arrow.circlepath")
                 }
             
-            // Статистика для ВСЕХ (но разная)
-            DashboardView()
-                .tabItem {
-                    Label("Статистика", systemImage: "chart.bar")
-                }
+            // УМНАЯ ВКЛАДКА СТАТИСТИКИ
+            Group {
+                if authViewModel.isAdmin {
+                    DashboardView(userId: nil, isAdmin: true, title: "Статистика системы")
+                    } else {
+                        DashboardView(userId: authViewModel.userId, isAdmin: false, title: "Моя статистика")
+                    }
+            }
+            .tabItem {
+                Label("Статистика", systemImage: "chart.bar")
+            }
             
             ProfileView()
                 .tabItem {
