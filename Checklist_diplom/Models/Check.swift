@@ -4,6 +4,7 @@ struct Check: Codable, Identifiable, Hashable {
     let id: Int
     let userId: Int?
     let zoneId: Int
+    let roomNumber: String?
     let notes: String?
     let status: Int
     let score: Double?
@@ -43,6 +44,7 @@ struct Check: Codable, Identifiable, Hashable {
         case id, notes, status, score
         case userId = "user_id"
         case zoneId = "zone_id"
+        case roomNumber = "room_number"
         case submittedAt = "submitted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

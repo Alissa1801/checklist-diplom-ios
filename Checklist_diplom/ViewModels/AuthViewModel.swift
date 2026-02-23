@@ -49,7 +49,7 @@ class AuthViewModel: ObservableObject {
     
     func checkAuthentication() {
         isAuthenticated = apiService.isLoggedIn
-        print("🔐 Проверка аутентификации: \(isAuthenticated)")
+        print(" Проверка аутентификации: \(isAuthenticated)")
     }
     
     func login(email: String, password: String) async {

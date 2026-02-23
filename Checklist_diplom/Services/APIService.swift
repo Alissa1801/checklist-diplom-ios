@@ -240,7 +240,7 @@ class APIService {
     
     // MARK: - Create Check (multipart form data)
     
-    func createCheck(zoneId: Int, imageData: Data?) async throws -> Check {
+    func createCheck(zoneId: Int, roomNumber: String, imageData: Data?) async throws -> Check { // Добавили roomNumber сюда
         let url = URL(string: "\(baseURL)/checks")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -256,6 +256,7 @@ class APIService {
         
         let fields: [String: String] = [
             "zone_id": "\(zoneId)",
+            "room_number": roomNumber, // Теперь roomNumber доступен
             "submitted_at": ISO8601DateFormatter().string(from: Date())
         ]
         
@@ -363,7 +364,7 @@ struct RefreshTokenResponse: Codable {
     struct QualityStats: Codable {
         let averageScore: Double
         let checksWithPhoto: Int
-        let totalPhotos: Int
+        let totalPhotos: Int?
         let photosPerCheck: Double
         
         enum CodingKeys: String, CodingKey {

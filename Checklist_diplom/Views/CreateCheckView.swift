@@ -11,6 +11,7 @@ struct CreateCheckView: View {
     @State private var createdCheck: Check?
     @State private var showingResult = false
     @State private var activeSheet: ActiveSheet?
+    @State private var roomNumber: String = ""
     
     enum ActiveSheet: Identifiable {
         case imagePicker
@@ -31,6 +32,10 @@ struct CreateCheckView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section(header: Text("Информация об объекте")) {
+                    TextField("Номер комнаты", text: $roomNumber)
+                    .keyboardType(.numberPad) // Оптимально для цифр
+                }
                 // Выбор зоны
                 Section(header: Text("Зона уборки")) {
                     Picker("Выберите зону", selection: $selectedZoneId) {
@@ -88,7 +93,7 @@ struct CreateCheckView: View {
                                 .frame(maxWidth: .infinity)
                                 .multilineTextAlignment(.center)
                         }
-                        .disabled(selectedZoneId == nil || selectedImage == nil)
+                        .disabled(selectedZoneId == nil || selectedImage == nil || roomNumber.isEmpty)
                     }
                 }
             }
@@ -131,6 +136,7 @@ struct CreateCheckView: View {
                 // Убрали notes из вызова
                 let check = try await checksViewModel.createCheck(
                     zoneId: zoneId,
+                    roomNumber: roomNumber,
                     image: selectedImage
                 )
                 
@@ -141,6 +147,7 @@ struct CreateCheckView: View {
                     // Сброс формы
                     self.selectedZoneId = nil
                     self.selectedImage = nil
+                    self.roomNumber = ""
                 }
             } catch {
                 await MainActor.run {

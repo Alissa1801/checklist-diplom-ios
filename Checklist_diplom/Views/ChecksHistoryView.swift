@@ -69,6 +69,13 @@ struct CheckRowView: View {
                 Text(check.zone?.name ?? "Неизвестная зона")
                     .font(.headline)
                 
+                if let room = check.roomNumber, !room.isEmpty {
+                    Text("• №\(room)")
+                        .font(.subheadline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.blue)
+                }
+                
                 Text(check.statusText)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -110,14 +117,21 @@ struct CheckRowView: View {
     }
     
     private func formatDate(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: dateString) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateStyle = .short
-            displayFormatter.timeStyle = .short
-            return displayFormatter.string(from: date)
-        }
-        return dateString
+        let isoFormatter = ISO8601DateFormatter()
+        // Включаем поддержку миллисекунд, которые шлет Rails (.995Z)
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Пытаемся распарсить дату (сначала с миллисекундами, потом без)
+        let date = isoFormatter.date(from: dateString) ?? ISO8601DateFormatter().date(from: dateString)
+        
+        guard let date = date else { return dateString }
+        
+        let displayFormatter = DateFormatter()
+        displayFormatter.locale = Locale(identifier: "ru_RU")
+        // Строгий формат: День.Месяц.Год, Часы:Минуты
+        displayFormatter.dateFormat = "dd.MM.yyyy, HH:mm"
+        
+        return displayFormatter.string(from: date)
     }
 }
 
@@ -154,6 +168,12 @@ struct CheckDetailView: View {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                     
+                    if let room = check.roomNumber, !room.isEmpty {
+                        Text("№\(room)")
+                            .font(.title)
+                            .foregroundColor(.blue)
+                    }
+                                        
                     HStack {
                         Image(systemName: statusIcon)
                             .foregroundColor(statusColor)
@@ -166,6 +186,10 @@ struct CheckDetailView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Детали проверки")
                         .font(.headline)
+                    
+                    if let room = check.roomNumber, !room.isEmpty {
+                        DetailRow(title: "Номер комнаты", value: "№ \(room)")
+                    }
                     
                     DetailRow(title: "Дата отправки", value: formatDate(check.submittedAt))
                     DetailRow(title: "Статус", value: check.statusText)
@@ -202,14 +226,21 @@ struct CheckDetailView: View {
     }
     
     private func formatDate(_ dateString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        if let date = formatter.date(from: dateString) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.dateStyle = .long
-            displayFormatter.timeStyle = .short
-            return displayFormatter.string(from: date)
-        }
-        return dateString
+        let isoFormatter = ISO8601DateFormatter()
+        // Включаем поддержку миллисекунд, которые шлет Rails (.995Z)
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        
+        // Пытаемся распарсить дату (сначала с миллисекундами, потом без)
+        let date = isoFormatter.date(from: dateString) ?? ISO8601DateFormatter().date(from: dateString)
+        
+        guard let date = date else { return dateString }
+        
+        let displayFormatter = DateFormatter()
+        displayFormatter.locale = Locale(identifier: "ru_RU")
+        // Строгий формат: День.Месяц.Год, Часы:Минуты
+        displayFormatter.dateFormat = "dd.MM.yyyy, HH:mm"
+        
+        return displayFormatter.string(from: date)
     }
 }
 

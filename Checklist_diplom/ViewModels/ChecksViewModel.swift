@@ -32,7 +32,7 @@ class ChecksViewModel: ObservableObject {
         }
     }
     
-    func createCheck(zoneId: Int, image: UIImage?) async throws -> Check {
+    func createCheck(zoneId: Int, roomNumber: String, image: UIImage?) async throws -> Check {
         guard let image = image else {
             throw NSError(domain: "ChecksViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "Фото обязательно"])
         }
@@ -46,6 +46,7 @@ class ChecksViewModel: ObservableObject {
         
         return try await apiService.createCheck(
             zoneId: zoneId,
+            roomNumber: roomNumber,
             imageData: imageData
         )
     }
